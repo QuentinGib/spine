@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Shuffle, BookOpen, RefreshCw } from "lucide-react";
+import { useBookCover } from "@/hooks/useBookCover";
+import BookCoverComponent from "@/components/BookCover";
 
 const typeConfig = {
   "Sure Thing": {
@@ -25,6 +27,39 @@ const typeConfig = {
 
 interface Props {
   type: "Sure Thing" | "Wildcard" | "Deep Dive";
+}
+
+function RecommendationCard({
+  recommendation,
+  generating,
+  onNotFeelingIt,
+}: {
+  recommendation: { recommended_book_title: string; recommended_book_author: string; blurb: string };
+  generating: boolean;
+  onNotFeelingIt: () => void;
+}) {
+  const coverUrl = useBookCover(recommendation.recommended_book_title, recommendation.recommended_book_author);
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-8 text-center space-y-4">
+      <div className="flex justify-center">
+        <BookCoverComponent coverUrl={coverUrl} title={recommendation.recommended_book_title} size="lg" />
+      </div>
+      <h3 className="text-2xl font-display font-semibold text-foreground">
+        {recommendation.recommended_book_title}
+      </h3>
+      <p className="text-muted-foreground font-medium">
+        by {recommendation.recommended_book_author}
+      </p>
+      <p className="text-sm text-foreground/80 leading-relaxed max-w-lg mx-auto">
+        {recommendation.blurb}
+      </p>
+      <Button onClick={onNotFeelingIt} variant="outline" className="mt-6" disabled={generating}>
+        <RefreshCw size={14} className={generating ? "animate-spin" : ""} />
+        Not Feeling It
+      </Button>
+    </div>
+  );
 }
 
 export default function RecommendationPage({ type }: Props) {
@@ -211,26 +246,11 @@ export default function RecommendationPage({ type }: Props) {
       </div>
 
       {recommendation ? (
-        <div className="bg-card border border-border rounded-lg p-8 text-center space-y-4">
-          <h3 className="text-2xl font-display font-semibold text-foreground">
-            {recommendation.recommended_book_title}
-          </h3>
-          <p className="text-muted-foreground font-medium">
-            by {recommendation.recommended_book_author}
-          </p>
-          <p className="text-sm text-foreground/80 leading-relaxed max-w-lg mx-auto">
-            {recommendation.blurb}
-          </p>
-          <Button
-            onClick={handleNotFeelingIt}
-            variant="outline"
-            className="mt-6"
-            disabled={generating}
-          >
-            <RefreshCw size={14} className={generating ? "animate-spin" : ""} />
-            Not Feeling It
-          </Button>
-        </div>
+        <RecommendationCard
+          recommendation={recommendation}
+          generating={generating}
+          onNotFeelingIt={handleNotFeelingIt}
+        />
       ) : type === "Deep Dive" && chatPhase !== "done" ? (
         <div className="bg-card border border-border rounded-lg p-6 space-y-4">
           {chatPhase === "idle" ? (
