@@ -6,6 +6,8 @@ import { parseGoodreadsCsv, ParsedBook } from "@/lib/csvParser";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Upload, Search, Minus, Star, Plus } from "lucide-react";
+import { useBookCovers } from "@/hooks/useBookCover";
+import BookCover from "@/components/BookCover";
 
 interface Book {
   id: string;
@@ -30,6 +32,8 @@ export default function Library() {
   const [searchResults, setSearchResults] = useState<GoogleBookResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [addingRating, setAddingRating] = useState<{ book: GoogleBookResult; rating: number } | null>(null);
+
+  const covers = useBookCovers(books.map((b) => ({ title: b.title, author: b.author })));
 
   const fetchBooks = useCallback(async () => {
     if (!user) return;
@@ -220,7 +224,12 @@ export default function Library() {
       ) : (
         <div className="bg-card border border-border rounded-lg divide-y divide-border">
           {books.map((book) => (
-            <div key={book.id} className="flex items-center justify-between px-4 py-3 group">
+            <div key={book.id} className="flex items-center gap-3 px-4 py-3 group">
+              <BookCover
+                coverUrl={covers.get(`${book.title}::${book.author}`) ?? null}
+                title={book.title}
+                size="sm"
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground truncate">{book.title}</p>
                 <p className="text-xs text-muted-foreground">{book.author}</p>
