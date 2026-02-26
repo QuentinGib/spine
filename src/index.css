@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,44 +6,35 @@
 
 @layer base {
   :root {
-    --background: 40 33% 96%;
-    --foreground: 20 10% 15%;
+    --background: 40 30% 96%;
+    --foreground: 20 12% 14%;
 
-    --card: 40 30% 98%;
-    --card-foreground: 20 10% 15%;
+    --card: 40 28% 98%;
+    --card-foreground: 20 12% 14%;
 
-    --popover: 40 30% 98%;
-    --popover-foreground: 20 10% 15%;
+    --popover: 40 28% 98%;
+    --popover-foreground: 20 12% 14%;
 
-    --primary: 32 80% 50%;
+    --primary: 32 78% 48%;
     --primary-foreground: 40 33% 98%;
 
-    --secondary: 35 25% 91%;
+    --secondary: 35 22% 91%;
     --secondary-foreground: 20 10% 25%;
 
-    --muted: 35 20% 93%;
-    --muted-foreground: 20 8% 50%;
+    --muted: 35 18% 92%;
+    --muted-foreground: 22 8% 52%;
 
-    --accent: 32 60% 45%;
-    --accent-foreground: 40 33% 98%;
+    --accent: 35 18% 89%;
+    --accent-foreground: 20 10% 20%;
 
     --destructive: 0 60% 50%;
     --destructive-foreground: 40 33% 98%;
 
-    --border: 35 20% 88%;
-    --input: 35 20% 88%;
-    --ring: 32 80% 50%;
+    --border: 35 18% 87%;
+    --input: 35 18% 89%;
+    --ring: 32 78% 48%;
 
-    --radius: 0.625rem;
-
-    --sidebar-background: 40 25% 95%;
-    --sidebar-foreground: 20 10% 25%;
-    --sidebar-primary: 32 80% 50%;
-    --sidebar-primary-foreground: 40 33% 98%;
-    --sidebar-accent: 35 25% 90%;
-    --sidebar-accent-foreground: 20 10% 25%;
-    --sidebar-border: 35 20% 88%;
-    --sidebar-ring: 32 80% 50%;
+    --radius: 0.5rem;
 
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'DM Sans', system-ui, sans-serif;
@@ -55,12 +46,62 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
+    letter-spacing: -0.025em;
   }
+
+  ::selection {
+    background-color: hsl(32 78% 48% / 0.15);
+    color: hsl(20 12% 14%);
+  }
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(35 18% 91%) 25%,
+    hsl(35 18% 86%) 50%,
+    hsl(35 18% 91%) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Fade-in entry ─────────────────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Book cover lift ──────────────────────────────────────────────────────── */
+
+/* Applied to the cover wrapper; group-hover states are handled in Tailwind */
+.cover-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
 }

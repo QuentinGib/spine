@@ -22,49 +22,99 @@ export default function Auth() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else if (!isLogin) {
-      toast({ title: "Welcome!", description: "Your account has been created." });
+      toast({ title: "Welcome to Spine", description: "Your account has been created." });
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm animate-fade-in">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground">Shelf</h1>
-          <p className="mt-2 text-muted-foreground">Your personal book companion</p>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-[340px] animate-fade-in space-y-10">
+
+        {/* Brand */}
+        <div className="text-center space-y-2">
+          <h1 className="font-display italic font-medium text-5xl text-foreground tracking-normal">
+            Spine
+          </h1>
+          <p className="font-display italic text-sm text-muted-foreground">
+            Your reading life, curated.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="h-12 bg-card"
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="h-12 bg-card"
-          />
-          <Button type="submit" className="h-12 w-full" disabled={loading}>
-            {loading ? "..." : isLogin ? "Sign In" : "Create Account"}
+        {/* Hairline divider */}
+        <div className="border-t border-border/70" />
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="email"
+              className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
+            >
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="h-11 bg-card border-border/60 focus-visible:ring-1 focus-visible:ring-primary/50
+                         text-sm placeholder:text-muted-foreground/50 rounded-lg"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="password"
+              className="block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
+            >
+              Password
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              className="h-11 bg-card border-border/60 focus-visible:ring-1 focus-visible:ring-primary/50
+                         text-sm placeholder:text-muted-foreground/50 rounded-lg"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-11 font-medium text-sm tracking-wide rounded-lg"
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-blink [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-blink [animation-delay:200ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-blink [animation-delay:400ms]" />
+              </span>
+            ) : isLogin ? "Sign In" : "Create Account"}
           </Button>
         </form>
 
-        <button
-          onClick={() => setIsLogin(!isLogin)}
-          className="mt-6 block w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+        {/* Toggle */}
+        <p className="text-center text-sm text-muted-foreground">
+          {isLogin ? "New to Spine?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-foreground font-medium underline-offset-4 hover:underline transition-colors"
+          >
+            {isLogin ? "Create an account" : "Sign in"}
+          </button>
+        </p>
+
       </div>
     </div>
   );

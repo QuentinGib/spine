@@ -21,37 +21,52 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <h1 className="text-2xl font-semibold tracking-tight font-display text-foreground">Shelf</h1>
-          <nav className="flex items-center gap-1">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/85 backdrop-blur-md">
+        <div className="container mx-auto grid grid-cols-[1fr_auto_1fr] items-center h-16 px-6">
+
+          {/* Left: Brand — italic Playfair evokes a book spine */}
+          <h1 className="font-display italic font-medium text-xl tracking-normal text-foreground select-none">
+            Spine
+          </h1>
+
+          {/* Center: Navigation pill cluster */}
+          <nav className="flex items-center gap-0.5 rounded-full bg-muted/70 p-1">
             {navItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === "/"}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                   transition-all duration-200 whitespace-nowrap select-none
+                   ${isActive
+                     ? "bg-[#f5e3b8] text-[#7a5a0e] shadow-sm"
+                     : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                   }`
                 }
               >
-                <Icon size={16} />
+                <Icon size={13} strokeWidth={1.75} />
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
             ))}
+          </nav>
+
+          {/* Right: Utility actions */}
+          <div className="flex justify-end">
             <button
               onClick={handleSignOut}
-              className="ml-2 flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground
+                         hover:text-foreground hover:bg-muted transition-colors duration-150"
+              title="Sign out"
             >
-              <LogOut size={16} />
+              <LogOut size={15} strokeWidth={1.75} />
             </button>
-          </nav>
+          </div>
+
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+
+      <main className="container mx-auto px-4 py-10 max-w-6xl">
         {children}
       </main>
     </div>

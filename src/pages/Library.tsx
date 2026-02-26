@@ -14,6 +14,7 @@ import {
 import { Upload, Search, Star } from "lucide-react";
 import { useBookCovers } from "@/hooks/useBookCover";
 import BookCard from "@/components/BookCard";
+import BookDetailModal from "@/components/BookDetailModal";
 
 interface Book {
   id: string;
@@ -39,6 +40,14 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "alpha", label: "A–Z" },
 ];
 
+interface SelectedBook {
+  id: string;
+  title: string;
+  author: string;
+  rating: number;
+  coverUrl: string | null;
+}
+
 export default function Library() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,12 +63,46 @@ export default function Library() {
   const searchRef = useRef<HTMLDivElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Detail modal state ─────────────────────────────────────────────────────
+  const [selectedBook, setSelectedBook] = useState<SelectedBook | null>(null);
+  const [selectedBookDesc, setSelectedBookDesc] = useState<string | null>(null);
+  const [loadingDesc, setLoadingDesc] = useState(false);
+
+  // Fetch description from Google Books when a book is selected
+  useEffect(() => {
+    if (!selectedBook) return;
+
+    setSelectedBookDesc(null);
+    setLoadingDesc(true);
+
+    const controller = new AbortController();
+    const query = encodeURIComponent(`${selectedBook.title} ${selectedBook.author}`);
+
+    fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`,
+      { signal: controller.signal }
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        setSelectedBookDesc(data.items?.[0]?.volumeInfo?.description ?? null);
+        setLoadingDesc(false);
+      })
+      .catch(() => {
+        // AbortError is expected on modal close — silently ignore
+        setLoadingDesc(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedBook?.id]); // re-run only when a different book is selected
+
+  // ── Covers ─────────────────────────────────────────────────────────────────
   const coverInputs = useMemo(
     () => books.map((b) => ({ title: b.title, author: b.author })),
     [books]
   );
   const covers = useBookCovers(coverInputs);
 
+  // ── Sorting ────────────────────────────────────────────────────────────────
   const sortedBooks = useMemo(() => {
     const arr = [...books];
     switch (sortBy) {
@@ -70,10 +113,11 @@ export default function Library() {
       case "alpha":
         return arr.sort((a, b) => a.title.localeCompare(b.title));
       default:
-        return arr; // "added" — preserves created_at desc order from Supabase
+        return arr;
     }
   }, [books, sortBy]);
 
+  // ── Data fetching ──────────────────────────────────────────────────────────
   const fetchBooks = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
@@ -85,11 +129,9 @@ export default function Library() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+  useEffect(() => { fetchBooks(); }, [fetchBooks]);
 
-  // Close dropdown on outside click
+  // Close search dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -134,6 +176,7 @@ export default function Library() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // ── CSV import ─────────────────────────────────────────────────────────────
   const handleCsvUpload = async (file: File) => {
     if (!user) return;
     try {
@@ -190,6 +233,7 @@ export default function Library() {
     e.target.value = "";
   };
 
+  // ── Search result actions ──────────────────────────────────────────────────
   const openRatingModal = (book: GoogleBookResult) => {
     setRatingTarget(book);
     setSelectedRating(7);
@@ -215,7 +259,7 @@ export default function Library() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Added!", description: `${ratingTarget.title} added to your library.` });
+      toast({ title: "Added to your library!", description: ratingTarget.title });
       setRatingTarget(null);
       fetchBooks();
     }
@@ -226,13 +270,26 @@ export default function Library() {
     setBooks((prev) => prev.filter((b) => b.id !== id));
   };
 
+  // ── Book card click → open detail modal ───────────────────────────────────
+  const handleBookClick = (book: Book) => {
+    setSelectedBook({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      rating: book.rating,
+      coverUrl: covers.get(`${book.title}::${book.author}`) ?? null,
+    });
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header row */}
+    <div className="space-y-8 animate-fade-in">
+
+      {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-3xl font-semibold font-display text-foreground">My Library</h2>
-          <p className="mt-1 text-muted-foreground">
+          <h2 className="text-4xl font-display font-medium text-foreground">My Library</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground font-display italic">
             {books.length > 0
               ? `${books.length} book${books.length !== 1 ? "s" : ""} in your collection.`
               : "Your personal collection of reads."}
@@ -242,10 +299,10 @@ export default function Library() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 h-9"
+            className="gap-2 h-9 text-sm font-medium"
             onClick={() => csvInputRef.current?.click()}
           >
-            <Upload size={14} />
+            <Upload size={13} strokeWidth={2} />
             Upload Goodreads CSV
           </Button>
           <input
@@ -258,41 +315,41 @@ export default function Library() {
         </div>
       </div>
 
-      {/* Search + sort row */}
+      {/* Search + sort */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search */}
-        <div ref={searchRef} className="relative w-full sm:max-w-sm">
+
+        <div ref={searchRef} className="relative w-full sm:max-w-xs">
           <div className="relative">
             <Search
-              size={14}
+              size={13}
+              strokeWidth={2}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
             />
             <Input
               placeholder="Search to add a book..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-card"
+              className="pl-8 h-9 bg-card text-sm border-border/60
+                         focus-visible:ring-1 focus-visible:ring-primary/40"
             />
             {searching && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border-[1.5px]
+                              border-primary border-t-transparent rounded-full animate-spin" />
             )}
           </div>
 
-          {/* Dropdown results */}
           {showResults && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+            <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-card border border-border
+                            rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.10)] overflow-hidden">
               {searchResults.map((result) => (
                 <button
                   key={result.id}
                   onClick={() => openRatingModal(result)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60
+                             transition-colors text-left"
                 >
                   {result.coverUrl ? (
-                    <img
-                      src={result.coverUrl}
-                      alt=""
-                      className="w-8 h-11 object-cover rounded flex-shrink-0"
-                    />
+                    <img src={result.coverUrl} alt="" className="w-8 h-11 object-cover rounded flex-shrink-0" />
                   ) : (
                     <div className="w-8 h-11 bg-muted rounded flex-shrink-0" />
                   )}
@@ -306,18 +363,18 @@ export default function Library() {
           )}
         </div>
 
-        {/* Sort controls */}
         {books.length > 0 && (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-0.5 bg-muted/60 rounded-full p-0.5 flex-shrink-0">
             {SORT_OPTIONS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setSortBy(key)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
-                  sortBy === key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
-                }`}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150
+                  whitespace-nowrap
+                  ${sortBy === key
+                    ? "bg-[#f5e3b8] text-[#7a5a0e] shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                  }`}
               >
                 {label}
               </button>
@@ -326,40 +383,36 @@ export default function Library() {
         )}
       </div>
 
-      {/* Rating Dialog */}
+      {/* Rating dialog */}
       <Dialog open={!!ratingTarget} onOpenChange={(open) => !open && setRatingTarget(null)}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Rate this book</DialogTitle>
+            <DialogTitle className="font-display font-medium text-lg">Rate this book</DialogTitle>
           </DialogHeader>
           {ratingTarget && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div className="flex gap-4">
                 {ratingTarget.coverUrl ? (
-                  <img
-                    src={ratingTarget.coverUrl}
-                    alt=""
-                    className="w-16 h-24 object-cover rounded-md flex-shrink-0 shadow-sm"
-                  />
+                  <img src={ratingTarget.coverUrl} alt="" className="w-14 h-20 object-cover rounded shadow-sm flex-shrink-0" />
                 ) : (
-                  <div className="w-16 h-24 bg-muted rounded-md flex-shrink-0" />
+                  <div className="w-14 h-20 bg-muted rounded flex-shrink-0" />
                 )}
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-foreground leading-snug">{ratingTarget.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">{ratingTarget.authors.join(", ")}</p>
+                <div className="min-w-0 pt-0.5">
+                  <h3 className="font-display font-medium text-foreground leading-snug">{ratingTarget.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{ratingTarget.authors.join(", ")}</p>
                   {ratingTarget.description && (
-                    <p className="text-xs text-muted-foreground mt-2 line-clamp-4 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-3 leading-relaxed">
                       {ratingTarget.description}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">Your rating</span>
                   <span className="text-sm font-semibold text-primary flex items-center gap-1">
-                    <Star size={13} className="fill-primary" />
+                    <Star size={12} className="fill-primary" />
                     {selectedRating} / 10
                   </span>
                 </div>
@@ -368,13 +421,13 @@ export default function Library() {
                     <button
                       key={n}
                       onClick={() => setSelectedRating(n)}
-                      className={`h-8 rounded-md text-xs font-medium transition-colors ${
-                        n === selectedRating
-                          ? "bg-primary text-primary-foreground shadow-sm"
+                      className={`h-9 rounded text-xs font-semibold transition-all duration-100
+                        ${n === selectedRating
+                          ? "bg-primary text-primary-foreground shadow-sm scale-105"
                           : n < selectedRating
-                          ? "bg-primary/20 text-primary"
+                          ? "bg-primary/15 text-primary/80"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
+                        }`}
                     >
                       {n}
                     </button>
@@ -382,7 +435,7 @@ export default function Library() {
                 </div>
               </div>
 
-              <Button onClick={addBook} className="w-full">
+              <Button onClick={addBook} className="w-full h-10 font-medium">
                 Add to Library
               </Button>
             </div>
@@ -390,27 +443,29 @@ export default function Library() {
         </DialogContent>
       </Dialog>
 
-      {/* Book Grid */}
+      {/* Book grid */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="flex flex-col rounded-lg overflow-hidden">
-              <div className="aspect-[2/3] bg-muted animate-pulse rounded-t-lg" />
-              <div className="px-2 py-2 space-y-1.5">
-                <div className="h-2.5 bg-muted animate-pulse rounded w-3/4" />
-                <div className="h-2 bg-muted animate-pulse rounded w-1/2" />
+          {Array.from({ length: 18 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2.5">
+              <div className="aspect-[2/3] skeleton rounded" />
+              <div className="space-y-1.5">
+                <div className="h-2.5 skeleton rounded w-4/5" />
+                <div className="h-2 skeleton rounded w-3/5" />
+                <div className="h-2 skeleton rounded w-1/3" />
               </div>
             </div>
           ))}
         </div>
       ) : books.length === 0 ? (
-        <div className="text-center py-24">
-          <p className="text-muted-foreground text-sm">
-            Your library is empty. Search for a book or upload a Goodreads CSV to get started.
+        <div className="text-center py-28">
+          <p className="font-display italic text-xl text-muted-foreground/50 mb-2">Your shelves are empty.</p>
+          <p className="text-sm text-muted-foreground">
+            Search for a book above or upload a Goodreads CSV to get started.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-5 gap-y-7">
           {sortedBooks.map((book) => (
             <BookCard
               key={book.id}
@@ -420,10 +475,23 @@ export default function Library() {
               rating={book.rating}
               coverUrl={covers.get(`${book.title}::${book.author}`) ?? null}
               onDelete={deleteBook}
+              onClick={() => handleBookClick(book)}
             />
           ))}
         </div>
       )}
+
+      {/* Book detail modal */}
+      <BookDetailModal
+        isOpen={!!selectedBook}
+        onClose={() => setSelectedBook(null)}
+        title={selectedBook?.title ?? ""}
+        author={selectedBook?.author ?? ""}
+        rating={selectedBook?.rating}
+        description={selectedBookDesc}
+        loadingDescription={loadingDesc}
+      />
+
     </div>
   );
 }
