@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,11 @@ export default function Library() {
   const [searching, setSearching] = useState(false);
   const [addingRating, setAddingRating] = useState<{ book: GoogleBookResult; rating: number } | null>(null);
 
-  const covers = useBookCovers(books.map((b) => ({ title: b.title, author: b.author })));
+  const coverInputs = useMemo(
+    () => books.map((b) => ({ title: b.title, author: b.author })),
+    [books]
+  );
+  const covers = useBookCovers(coverInputs);
 
   const fetchBooks = useCallback(async () => {
     if (!user) return;
@@ -60,17 +64,48 @@ export default function Library() {
         return;
       }
 
-      const rows = parsed.map((b: ParsedBook) => ({
-        user_id: user.id,
-        title: b.title,
-        author: b.author,
-        rating: b.rating,
-      }));
+      const existingTitles = new Set(
+        books.map((b) => b.title.trim().toLowerCase())
+      );
 
-      const { error } = await supabase.from("library").insert(rows);
+      const rows = parsed.reduce<{ rows: any[]; duplicates: number }>(
+        (acc, b: ParsedBook) => {
+          const normalizedTitle = b.title.trim().toLowerCase();
+          if (existingTitles.has(normalizedTitle)) {
+            acc.duplicates += 1;
+            return acc;
+          }
+          existingTitles.add(normalizedTitle);
+          acc.rows.push({
+            user_id: user.id,
+            title: b.title,
+            author: b.author,
+            rating: b.rating,
+          });
+          return acc;
+        },
+        { rows: [], duplicates: 0 }
+      );
+
+      if (rows.rows.length === 0) {
+        toast({
+          title: "This book is already in your library.",
+          description: "All books in this CSV are already in your library.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.from("library").insert(rows.rows);
       if (error) throw error;
 
-      toast({ title: "Imported!", description: `${parsed.length} books added.` });
+      toast({
+        title: "Imported!",
+        description:
+          rows.rows.length === parsed.length
+            ? `${rows.rows.length} books added.`
+            : `${rows.rows.length} books added. Some duplicates were skipped as they are already in your library.`,
+      });
       fetchBooks();
     } catch (e: any) {
       toast({ title: "Import failed", description: e.message, variant: "destructive" });
@@ -94,7 +129,9 @@ export default function Library() {
     setSearching(true);
     try {
       const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=5`
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+          searchQuery
+        )}&maxResults=5&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
       );
       const data = await res.json();
       setSearchResults(
@@ -112,6 +149,19 @@ export default function Library() {
 
   const addBook = async (book: GoogleBookResult, rating: number) => {
     if (!user) return;
+
+    const normalizedTitle = book.title.trim().toLowerCase();
+    const isDuplicate = books.some(
+      (b) => b.title.trim().toLowerCase() === normalizedTitle
+    );
+    if (isDuplicate) {
+      toast({
+        title: "This book is already in your library.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase.from("library").insert({
       user_id: user.id,
       title: book.title,

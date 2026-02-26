@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Shuffle, BookOpen, RefreshCw } from "lucide-react";
 import { useBookCover } from "@/hooks/useBookCover";
 import BookCoverComponent from "@/components/BookCover";
+import {
+  generateDeepDiveQuestion,
+  generateDeepDiveRecommendation,
+  generateGeminiRecommendation,
+} from "@/utils/gemini";
 
 const typeConfig = {
   "Sure Thing": {
@@ -111,29 +116,40 @@ export default function RecommendationPage({ type }: Props) {
     setGenerating(true);
 
     try {
-      const { data: books } = await supabase
+      const { data: topRated } = await supabase
         .from("library")
         .select("title, author, rating")
         .eq("user_id", user.id)
         .gte("rating", 8);
+
+      const { data: fullLibrary } = await supabase
+        .from("library")
+        .select("title, author, rating")
+        .eq("user_id", user.id);
 
       const { data: rejected } = await supabase
         .from("rejected_recommendations")
         .select("rejected_title")
         .eq("user_id", user.id);
 
-      const res = await supabase.functions.invoke("recommend", {
-        body: {
-          type,
-          books: books || [],
-          rejected: (rejected || []).map((r) => r.rejected_title),
-          extraContext,
-        },
-      });
+      const rejectedTitles = (rejected || []).map((r: any) => r.rejected_title);
 
-      if (res.error) throw new Error(res.error.message);
+      const rec =
+        type === "Deep Dive"
+          ? await generateDeepDiveRecommendation({
+              topRatedBooks: topRated || [],
+              fullLibrary: fullLibrary || [],
+              rejectedTitles,
+              moodAnswer: extraContext || "",
+            })
+          : await generateGeminiRecommendation({
+              mode: type,
+              topRatedBooks: topRated || [],
+              fullLibrary: fullLibrary || [],
+              rejectedTitles,
+              extraContext,
+            });
 
-      const rec = res.data;
 
       // Save to active_recommendations
       await supabase.from("active_recommendations").insert({
@@ -191,23 +207,23 @@ export default function RecommendationPage({ type }: Props) {
     setGenerating(true);
 
     try {
-      const { data: books } = await supabase
+      const { data: topRated } = await supabase
         .from("library")
         .select("title, author, rating")
         .eq("user_id", user!.id)
         .gte("rating", 8);
 
-      const res = await supabase.functions.invoke("recommend", {
-        body: {
-          type: "Deep Dive",
-          books: books || [],
-          rejected: [],
-          phase: "ask_questions",
-        },
+      const { data: fullLibrary } = await supabase
+        .from("library")
+        .select("title, author, rating")
+        .eq("user_id", user!.id);
+
+      const question = await generateDeepDiveQuestion({
+        topRatedBooks: topRated || [],
+        fullLibrary: fullLibrary || [],
       });
 
-      if (res.error) throw new Error(res.error.message);
-      setChatMessages([{ role: "assistant", content: res.data.question }]);
+      setChatMessages([{ role: "assistant", content: question }]);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
       setChatPhase("idle");
@@ -219,12 +235,12 @@ export default function RecommendationPage({ type }: Props) {
     if (!chatInput.trim()) return;
     const newMessages = [...chatMessages, { role: "user", content: chatInput }];
     setChatMessages(newMessages);
+    const answer = chatInput;
     setChatInput("");
     setGenerating(true);
 
     // After user answers, generate the recommendation
-    const contextStr = newMessages.map((m) => `${m.role}: ${m.content}`).join("\n");
-    await generateRecommendation(contextStr);
+    await generateRecommendation(answer);
   };
 
   const Icon = config.icon;

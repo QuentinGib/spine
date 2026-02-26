@@ -14,7 +14,9 @@ export function useBookCover(title: string, author: string): string | null {
 
     let cancelled = false;
     const query = encodeURIComponent(`${title} ${author}`);
-    fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`)
+    fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
+    )
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
@@ -62,7 +64,9 @@ export function useBookCovers(books: { title: string; author: string }[]): Map<s
         const key = `${book.title}::${book.author}`;
         try {
           const query = encodeURIComponent(`${book.title} ${book.author}`);
-          const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
+          const res = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
+          );
           const data = await res.json();
           const thumbnail =
             data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail?.replace("http://", "https://") || null;
@@ -82,3 +86,4 @@ export function useBookCovers(books: { title: string; author: string }[]): Map<s
 
   return covers;
 }
+
