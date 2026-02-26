@@ -9,8 +9,8 @@ import BookCoverComponent from "@/components/BookCover";
 import {
   generateDeepDiveQuestion,
   generateDeepDiveRecommendation,
-  generateGeminiRecommendation,
-} from "@/utils/gemini";
+  generateRecommendation as generateGroqRecommendation, 
+} from "@/utils/ai";
 
 const typeConfig = {
   "Sure Thing": {
@@ -142,7 +142,7 @@ export default function RecommendationPage({ type }: Props) {
               rejectedTitles,
               moodAnswer: extraContext || "",
             })
-          : await generateGeminiRecommendation({
+          : await generateGroqRecommendation({
               mode: type,
               topRatedBooks: topRated || [],
               fullLibrary: fullLibrary || [],
