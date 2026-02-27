@@ -38,6 +38,15 @@
 
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'DM Sans', system-ui, sans-serif;
+
+    /* Safe area insets for notched / island devices */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+
+    /* Bottom nav height (used for content offset) */
+    --bottom-nav-h: 4rem; /* 64px */
   }
 }
 
@@ -104,4 +113,20 @@
 .cover-lift {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.3s ease;
+}
+
+/* ── Utility: hide scrollbar while preserving scroll ───────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Safe-area bottom padding (for content behind the mobile nav bar) ──────── */
+@media (max-width: 767px) {
+  .mobile-content-pad {
+    padding-bottom: calc(var(--bottom-nav-h) + var(--sab) + 1.5rem);
+  }
 }

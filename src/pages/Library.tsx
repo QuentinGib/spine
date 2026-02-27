@@ -288,7 +288,7 @@ export default function Library() {
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-4xl font-display font-medium text-foreground">My Library</h2>
+          <h2 className="text-2xl sm:text-4xl font-display font-medium text-foreground">My Library</h2>
           <p className="mt-1.5 text-sm text-muted-foreground font-display italic">
             {books.length > 0
               ? `${books.length} book${books.length !== 1 ? "s" : ""} in your collection.`
@@ -303,7 +303,8 @@ export default function Library() {
             onClick={() => csvInputRef.current?.click()}
           >
             <Upload size={13} strokeWidth={2} />
-            Upload Goodreads CSV
+            <span className="hidden sm:inline">Upload Goodreads CSV</span>
+            <span className="sm:hidden">Import CSV</span>
           </Button>
           <input
             ref={csvInputRef}
@@ -364,7 +365,7 @@ export default function Library() {
         </div>
 
         {books.length > 0 && (
-          <div className="flex items-center gap-0.5 bg-muted/60 rounded-full p-0.5 flex-shrink-0">
+          <div className="flex items-center gap-0.5 bg-muted/60 rounded-full p-0.5 flex-shrink-0 overflow-x-auto scrollbar-none">
             {SORT_OPTIONS.map(({ key, label }) => (
               <button
                 key={key}
