@@ -1,0 +1,17 @@
+{
+  "name": "Spine",
+  "short_name": "Spine",
+  "description": "Your personal reading companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5ede0",
+  "theme_color": "#D4A574",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

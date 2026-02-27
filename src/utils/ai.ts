@@ -20,8 +20,8 @@ export type DeepDiveStep =
 
 const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined;
 
-if (!apiKey) {
-  console.error("Missing VITE_GROQ_API_KEY. Add it to .env.local and restart the dev server.");
+if (import.meta.env.DEV && !apiKey) {
+  console.warn("[Spine] VITE_GROQ_API_KEY is not set. Add it to your .env file.");
 }
 
 const groq = new Groq({
