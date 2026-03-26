@@ -35,6 +35,9 @@ export default function Auth() {
         {/* Brand */}
         <div className="flex flex-col items-center space-y-3">
           <img src="/logo_simple.png" alt="Spine" className="h-16 w-auto" />
+          <h1 className="font-display italic font-medium text-4xl text-foreground tracking-normal">
+            Spine
+          </h1>
           <p className="font-display italic text-sm text-muted-foreground">
             Your reading life, curated.
           </p>
