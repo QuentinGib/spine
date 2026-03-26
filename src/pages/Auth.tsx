@@ -33,10 +33,8 @@ export default function Auth() {
       <div className="w-full max-w-[340px] animate-fade-in space-y-10">
 
         {/* Brand */}
-        <div className="text-center space-y-2">
-          <h1 className="font-display italic font-medium text-5xl text-foreground tracking-normal">
-            Spine
-          </h1>
+        <div className="flex flex-col items-center space-y-3">
+          <img src="/logo_simple.png" alt="Spine" className="h-16 w-auto" />
           <p className="font-display italic text-sm text-muted-foreground">
             Your reading life, curated.
           </p>

@@ -111,15 +111,17 @@ export async function generateRecommendation(opts: {
   const systemPrompt = isSureThing
     ? `You are a literary sommelier — a connoisseur who reads the contours of a reader's taste to identify the one book they were born to read next.
 
-Your task: "The Sure Thing" — the highest-confidence recommendation possible.
+Your task: "The Sure Thing" — the highest-confidence recommendation possible, based on a holistic analysis of their entire reading history.
 
 Method:
-1. Study the reader's top-rated books as a body of work. What patterns emerge across genre, theme, prose style, narrative structure, pacing, emotional register, and moral complexity?
-2. Synthesize a precise taste profile from these signals.
-3. Identify the single book that most naturally and inevitably extends this profile — not a safe genre-match, but the book that feels written for them.
+1. Study the reader's FULL library of rated books as a complete ecosystem.
+   - Analyze their HIGHEST-rated books to identify their core loves: patterns in prose style, narrative structure, thematic depth, emotional register, and moral complexity.
+   - Crucially, analyze their LOWEST-rated books to identify their aversions and dealbreakers: what specific tropes, pacing flaws, or stylistic choices actively ruin a book for them?
+2. Synthesize a precise, bounded taste profile that defines both what they deeply crave and what they actively reject.
+3. Identify the single book that most naturally and inevitably fits inside these boundaries. This is not just a safe genre-match, but a meticulously chosen book that maximizes their loves while strictly avoiding their known dislikes.
 
 Output ONLY valid JSON:
-{"title": "Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences. First: articulate precisely why this book fits their specific taste. Second: a line that creates genuine, irresistible anticipation."}
+{"title": "Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences. First: articulate precisely why this book fits their specific taste while explicitly avoiding what they dislike. Second: a line that creates genuine, irresistible anticipation."}
 
 Only recommend real, published books. The blurb must feel tailored, not generic.`
     : `You are a curator of unexpected literary experiences — a specialist in emotional translation across genres.
@@ -138,7 +140,33 @@ Output ONLY valid JSON:
 
 Only recommend real, published books. The genre shift must be genuine and significant — not a minor variation.`;
 
-  const userPrompt = `Reader's top-rated books (8+/10):
+// Get all rated books
+  const allRated = (opts.fullLibrary || []).filter((b) => b.rating != null);
+
+  // Sort them from lowest rating to highest rating
+  const sortedByRating = [...allRated].sort((a, b) => (a.rating || 0) - (b.rating || 0));
+
+  // If the library is huge, grab the 25 worst books and 25 best books to map the extremes
+  const extremeBooks = sortedByRating.length <= 50 
+    ? sortedByRating 
+    : [...sortedByRating.slice(0, 25), ...sortedByRating.slice(-25)];
+
+  const ratedLibrary = extremeBooks.map((b) => ({ 
+    title: b.title, 
+    author: b.author, 
+    rating: b.rating 
+  }));
+
+  const userPrompt = isSureThing
+    ? `Reader's full rated library (up to 50 most recent, includes all ratings from 1–10):
+${JSON.stringify(ratedLibrary)}
+
+Do NOT recommend any book whose title (case-insensitive) appears in this list:
+${JSON.stringify(forbiddenTitles)}
+${opts.extraContext ? `\nAdditional context: ${opts.extraContext}` : ""}
+
+Recommend exactly one book.`
+    : `Reader's top-rated books (8+/10):
 ${JSON.stringify(topRated)}
 
 Do NOT recommend any book whose title (case-insensitive) appears in this list:

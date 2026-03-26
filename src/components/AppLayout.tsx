@@ -28,9 +28,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="container mx-auto grid grid-cols-[1fr_auto_1fr] items-center h-14 md:h-16 px-4 md:px-6">
 
           {/* Left: Brand */}
-          <h1 className="font-display italic font-medium text-xl tracking-normal text-foreground select-none">
-            Spine
-          </h1>
+          <div className="flex items-center gap-2 select-none">
+            <img src="/logo_simple.png" alt="Spine" className="h-8 w-auto" />
+            <h1 className="font-display italic font-medium text-xl tracking-normal text-foreground">Spine</h1>
+          </div>
 
           {/* Center: Navigation pill cluster — desktop only */}
           <nav className="hidden md:flex items-center gap-0.5 rounded-full bg-muted/70 p-1">
