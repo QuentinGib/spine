@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Shuffle, BookOpen, RefreshCw, Check, Star } from "lucide-react";
-import { useBookCover } from "@/hooks/useBookCover";
+import { useBookCover, useBookDescription } from "@/hooks/useBookCover";
 import BookCoverComponent from "@/components/BookCover";
 import {
   generateDeepDiveNextStep,
@@ -90,6 +90,10 @@ function RecommendationCard({
     recommendation.recommended_book_title,
     recommendation.recommended_book_author
   );
+  const { description: bookDescription, loading: loadingDescription } = useBookDescription(
+    recommendation.recommended_book_title,
+    recommendation.recommended_book_author
+  );
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(7);
   const [submitting, setSubmitting] = useState(false);
@@ -134,7 +138,8 @@ function RecommendationCard({
         onClose={() => setShowDetail(false)}
         title={recommendation.recommended_book_title}
         author={recommendation.recommended_book_author}
-        description={recommendation.blurb}
+        description={bookDescription}
+        loadingDescription={loadingDescription}
       />
 
       {/* ── Text details below the shelf ── */}

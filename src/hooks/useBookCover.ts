@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 const coverCache = new Map<string, string | null>();
+const descriptionCache = new Map<string, string | null>();
 
 // ─── Single cover ─────────────────────────────────────────────────────────────
 
@@ -35,6 +36,48 @@ export function useBookCover(title: string, author: string): string | null {
   }, [key, title, author]);
 
   return coverUrl;
+}
+
+// ─── Single description ───────────────────────────────────────────────────────
+
+export function useBookDescription(title: string, author: string): { description: string | null; loading: boolean } {
+  const key = `${title}::${author}`;
+  const cached = descriptionCache.get(key);
+  const [description, setDescription] = useState<string | null>(cached ?? null);
+  const [loading, setLoading] = useState(!descriptionCache.has(key));
+
+  useEffect(() => {
+    if (descriptionCache.has(key)) {
+      setDescription(descriptionCache.get(key) ?? null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    const query = encodeURIComponent(`${title} ${author}`);
+    fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const desc = data.items?.[0]?.volumeInfo?.description ?? null;
+        descriptionCache.set(key, desc);
+        setDescription(desc);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          descriptionCache.set(key, null);
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [key, title, author]);
+
+  return { description, loading };
 }
 
 // ─── Batch covers ─────────────────────────────────────────────────────────────
