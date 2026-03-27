@@ -288,7 +288,7 @@ export default function RecommendationPage({ type }: Props) {
     return {
       topRated: topRated || [],
       fullLibrary: fullLibrary || [],
-      rejectedTitles: (rejected || []).map((r: any) => r.rejected_title),
+      rejectedTitles: (rejected || []).map((r: { rejected_title: string }) => r.rejected_title),
     };
   };
 
@@ -324,8 +324,8 @@ export default function RecommendationPage({ type }: Props) {
         recommended_book_author: rec.author,
         blurb: rec.blurb,
       });
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Generation failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     }
     setGenerating(false);
   };
@@ -392,8 +392,8 @@ export default function RecommendationPage({ type }: Props) {
       } else {
         await generateStandardRecommendation(undefined, [recommendation.recommended_book_title]);
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
       setGenerating(false);
     }
   };
@@ -423,8 +423,8 @@ export default function RecommendationPage({ type }: Props) {
         await finalizeDeepDive(seedHistory);
         return;
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
       setChatPhase("idle");
     }
     setGenerating(false);
@@ -455,8 +455,8 @@ export default function RecommendationPage({ type }: Props) {
         blurb: rec.blurb,
       });
       setChatPhase("done");
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Generation failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     }
     setGenerating(false);
   };
@@ -491,8 +491,8 @@ export default function RecommendationPage({ type }: Props) {
       } else {
         await finalizeDeepDive(updatedMessages);
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
       setGenerating(false);
     }
   };

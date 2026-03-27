@@ -16,8 +16,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const bookList = (books || [])
-      .map((b: any) => `"${b.title}" by ${b.author} (rated ${b.rating}/10)`)
+    type BookEntry = { title: string; author: string; rating: number };
+    const bookList = ((books || []) as BookEntry[])
+      .map((b) => `"${b.title}" by ${b.author} (rated ${b.rating}/10)`)
       .join("\n");
 
     const rejectedList = (rejected || []).join(", ");
@@ -98,7 +99,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || "";
+    const content = data.choices?.[0]?.message?.content || "";
 
     // Extract JSON from possible markdown code blocks
     const jsonMatch = content.match(/\{[\s\S]*\}/);

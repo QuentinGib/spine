@@ -93,7 +93,7 @@ export default function Library() {
       });
 
     return () => controller.abort();
-  }, [selectedBook?.id]); // re-run only when a different book is selected
+  }, [selectedBook?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Covers ─────────────────────────────────────────────────────────────────
   const coverInputs = useMemo(
@@ -158,8 +158,17 @@ export default function Library() {
           )}&maxResults=6&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
         );
         const data = await res.json();
+        type GoogleBooksItem = {
+          id: string;
+          volumeInfo: {
+            title?: string;
+            authors?: string[];
+            description?: string;
+            imageLinks?: { thumbnail?: string };
+          };
+        };
         setSearchResults(
-          (data.items || []).map((item: any) => ({
+          (data.items || []).map((item: GoogleBooksItem) => ({
             id: item.id,
             title: item.volumeInfo.title || "Untitled",
             authors: item.volumeInfo.authors || ["Unknown"],
@@ -174,7 +183,7 @@ export default function Library() {
       setSearching(false);
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── CSV import ─────────────────────────────────────────────────────────────
   const handleCsvUpload = async (file: File) => {
@@ -188,7 +197,8 @@ export default function Library() {
       }
 
       const existingTitles = new Set(books.map((b) => b.title.trim().toLowerCase()));
-      const rows = parsed.reduce<{ rows: any[]; duplicates: number }>(
+      type LibraryRow = { user_id: string; title: string; author: string; rating: number };
+      const rows = parsed.reduce<{ rows: LibraryRow[]; duplicates: number }>(
         (acc, b: ParsedBook) => {
           const normalizedTitle = b.title.trim().toLowerCase();
           if (existingTitles.has(normalizedTitle)) {
@@ -222,8 +232,8 @@ export default function Library() {
             : `${rows.rows.length} books added. Duplicates were skipped.`,
       });
       fetchBooks();
-    } catch (e: any) {
-      toast({ title: "Import failed", description: e.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Import failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     }
   };
 
