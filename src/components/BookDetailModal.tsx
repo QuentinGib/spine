@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Star } from "lucide-react";
 
@@ -10,6 +10,7 @@ interface BookDetailModalProps {
   rating?: number;
   description?: string | null;
   loadingDescription?: boolean;
+  onRatingChange?: (newRating: number) => void;
 }
 
 export default function BookDetailModal({
@@ -20,7 +21,24 @@ export default function BookDetailModal({
   rating,
   description,
   loadingDescription = false,
+  onRatingChange,
 }: BookDetailModalProps) {
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
+
+  // Reset pending rating whenever a new book is opened
+  useEffect(() => {
+    setPendingRating(null);
+  }, [title]);
+
+  const displayRating = pendingRating ?? rating;
+  const isDirty = pendingRating !== null && pendingRating !== rating;
+
+  const handleSave = () => {
+    if (pendingRating !== null && onRatingChange) {
+      onRatingChange(pendingRating);
+      setPendingRating(null);
+    }
+  };
 
   // Close on Escape
   useEffect(() => {
@@ -82,7 +100,7 @@ export default function BookDetailModal({
 
         <div className="p-7 pt-6 sm:pt-10 space-y-4">
 
-          {/* Title + author + rating */}
+          {/* Title + author */}
           <div className="space-y-1">
             <h3 className="font-display font-medium text-xl leading-snug text-foreground pr-6">
               {title}
@@ -90,13 +108,46 @@ export default function BookDetailModal({
             <p className="text-sm font-display italic text-muted-foreground">
               {author}
             </p>
-            {rating != null && (
-              <div className="flex items-center gap-1.5 pt-0.5">
-                <Star size={11} className="fill-primary text-primary flex-shrink-0" />
-                <span className="text-sm font-semibold text-primary">{rating}/10</span>
-              </div>
-            )}
           </div>
+
+          {/* Rating editor */}
+          {rating != null && onRatingChange && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your rating</span>
+                <span className="text-sm font-semibold text-primary flex items-center gap-1">
+                  <Star size={11} className="fill-primary" />
+                  {displayRating}/10
+                </span>
+              </div>
+              <div className="grid grid-cols-10 gap-1">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setPendingRating(n)}
+                    className={`h-8 rounded text-xs font-semibold transition-all duration-100
+                      ${n === displayRating
+                        ? "bg-primary text-primary-foreground shadow-sm scale-105"
+                        : n < (displayRating ?? 0)
+                        ? "bg-primary/15 text-primary/80"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              {isDirty && (
+                <button
+                  onClick={handleSave}
+                  className="w-full h-9 rounded-lg bg-primary text-primary-foreground text-sm font-medium
+                             transition-opacity hover:opacity-90 mt-1"
+                >
+                  Save rating
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Description */}
           <div className="border-t border-border/50 pt-4">

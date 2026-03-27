@@ -280,6 +280,21 @@ export default function Library() {
     setBooks((prev) => prev.filter((b) => b.id !== id));
   };
 
+  const handleRatingChange = async (newRating: number) => {
+    if (!selectedBook) return;
+    const { error } = await supabase
+      .from("library")
+      .update({ rating: newRating })
+      .eq("id", selectedBook.id);
+    if (error) {
+      toast({ title: "Failed to update rating", description: error.message, variant: "destructive" });
+    } else {
+      setBooks((prev) => prev.map((b) => b.id === selectedBook.id ? { ...b, rating: newRating } : b));
+      setSelectedBook((prev) => prev ? { ...prev, rating: newRating } : prev);
+      toast({ title: "Rating updated" });
+    }
+  };
+
   // ── Book card click → open detail modal ───────────────────────────────────
   const handleBookClick = (book: Book) => {
     setSelectedBook({
@@ -501,6 +516,7 @@ export default function Library() {
         rating={selectedBook?.rating}
         description={selectedBookDesc}
         loadingDescription={loadingDesc}
+        onRatingChange={handleRatingChange}
       />
 
     </div>
