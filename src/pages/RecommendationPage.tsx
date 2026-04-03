@@ -287,7 +287,7 @@ export default function RecommendationPage({ type }: Props) {
     ] = await Promise.all([
       supabase.from("library").select("title, author, rating").eq("user_id", user!.id).gte("rating", 8),
       supabase.from("library").select("title, author, rating").eq("user_id", user!.id),
-      supabase.from("rejected_recommendations").select("rejected_title").eq("user_id", user!.id),
+      supabase.from("rejected_recommendations").select("rejected_title").eq("user_id", user!.id).order("created_at", { ascending: false }).limit(30),
     ]);
     const firstError = e1 ?? e2 ?? e3;
     if (firstError) throw new Error(firstError.message || "Session expired. Please sign in again.");
@@ -349,6 +349,18 @@ export default function RecommendationPage({ type }: Props) {
       toast({ title: "Session expired", description: "Please sign out and sign in again.", variant: "destructive" });
       setGenerating(false);
       return;
+    }
+
+    // Rolling window: keep only the 30 most recent rejections, delete the rest
+    const { data: allRejected } = await supabase
+      .from("rejected_recommendations")
+      .select("id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (allRejected && allRejected.length > 30) {
+      const toDelete = allRejected.slice(30).map((r: { id: string }) => r.id);
+      await supabase.from("rejected_recommendations").delete().in("id", toDelete);
     }
 
     const { error: deleteError } = await supabase

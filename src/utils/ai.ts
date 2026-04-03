@@ -48,8 +48,8 @@ function buildForbiddenTitles(library: LibraryBook[], extraForbiddenTitles: stri
 
 // ─── Shared helper ────────────────────────────────────────────────────────────
 
-/** Call Groq and return a validated AIRecommendation, retrying up to maxAttempts
- *  if the model returns a title that sits in forbiddenTitles. */
+/** Call Groq and return the first valid AIRecommendation from a batch of 3–5,
+ *  retrying up to maxAttempts only if every candidate in the batch is forbidden. */
 async function callWithRetry(
   systemPrompt: string,
   userPrompt: string,
@@ -61,11 +61,11 @@ async function callWithRetry(
     // Escalate temperature slightly on retries to diversify output
     const temperature = Math.min(baseTemperature + attempt * 0.15, 1.0);
 
-    // On retry, append an explicit violation notice to the user prompt
+    // On retry, tell the model its entire previous batch was forbidden
     const prompt =
       attempt === 0
         ? userPrompt
-        : `${userPrompt}\n\n⚠️ RETRY ${attempt}: Your previous response recommended a title that is already in the reader's library or rejection list. This is a hard constraint — pick a completely different book that does NOT appear in the forbidden list above.`;
+        : `${userPrompt}\n\n⚠️ RETRY ${attempt}: Every book in your previous batch was already in the reader's library or rejection list. Generate an entirely different set of books that do NOT appear in the forbidden list above.`;
 
     const response = await groq.chat.completions.create({
       messages: [
@@ -80,12 +80,16 @@ async function callWithRetry(
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("No response from Groq.");
 
-    const result = JSON.parse(content) as AIRecommendation;
+    const batch = JSON.parse(content) as { recommendations: AIRecommendation[] };
+    const candidates = Array.isArray(batch.recommendations) ? batch.recommendations : [];
 
-    // Post-response validation: reject if the title is in the forbidden list
-    if (!forbiddenTitles.includes(normalizeTitle(result.title))) {
-      return result;
+    // Return the first candidate whose title is not in the forbidden list
+    for (const rec of candidates) {
+      if (rec.title && !forbiddenTitles.includes(normalizeTitle(rec.title))) {
+        return rec;
+      }
     }
+    // All candidates were forbidden — retry with a higher temperature
   }
 
   throw new Error("Unable to find a recommendation outside your existing library. Please try again.");
@@ -122,9 +126,11 @@ Method:
 
 Output ONLY a raw, valid JSON object following this EXACT structure, ensuring all strings are properly closed with quotes:
 {
-  "title": "Exact Book Title",
-  "author": "Full Author Name",
-  "blurb": "Exactly 2 sentences fulfilling the prompt requirements."
+  "recommendations": [
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."},
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."},
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."}
+  ]
 }
 
 Do not add markdown formatting or conversational text.
@@ -136,16 +142,19 @@ Your task: "The Wildcard" — a book that delivers the reader's core emotional e
 
 Method:
 1. Identify the reader's "emotional fingerprint": the core feeling their highest-rated books consistently deliver beneath the surface of genre. This might be: the vertigo of moral ambiguity, the ache of quiet longing, the propulsive thrill of unraveling secrets, the warmth of found family, the unsettling beauty of unreliable reality.
-2. Identify their dominant genre(s).
-3. Choose a book from a COMPLETELY different genre — ideally one the reader would never select themselves — that delivers that exact emotional fingerprint with equal intensity.
+2. Study their lowest-rated books to identify clear aversions — tropes, tones, or structures they actively disliked — and ensure the recommendation avoids all of them.
+3. Identify their dominant genre(s).
+4. Choose a book from a COMPLETELY different genre — ideally one the reader would never select themselves — that delivers that exact emotional fingerprint with equal intensity.
 
 The surprise should feel like a revelation: "I would never have picked this, but it gave me exactly what I didn't know I was looking for."
 
 Output ONLY a raw, valid JSON object following this EXACT structure, ensuring all strings are properly closed with quotes:
 {
-  "title": "Exact Book Title",
-  "author": "Full Author Name",
-  "blurb": "Exactly 2 sentences fulfilling the prompt requirements."
+  "recommendations": [
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."},
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."},
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."}
+  ]
 }
 
 Do not add markdown formatting or conversational text.
@@ -155,37 +164,48 @@ Only recommend real, published books. The genre shift must be genuine and signif
 // Get all rated books
   const allRated = (opts.fullLibrary || []).filter((b) => b.rating != null);
 
-  // Sort them from lowest rating to highest rating
+  // Sort from lowest to highest rating
   const sortedByRating = [...allRated].sort((a, b) => (a.rating || 0) - (b.rating || 0));
 
-  // If the library is huge, grab the 25 worst books and 25 best books to map the extremes
-  const extremeBooks = sortedByRating.length <= 50 
-    ? sortedByRating 
-    : [...sortedByRating.slice(0, 25), ...sortedByRating.slice(-25)];
+  // Always send the 10 lowest-rated + 40 highest-rated books (with overlap protection for small libraries)
+  const bottom10 = sortedByRating.slice(0, 10);
+  const top40 = sortedByRating.slice(-40);
+  const bottom10Ids = new Set(bottom10.map((b) => b.title));
+  const extremeBooks = [...bottom10, ...top40.filter((b) => !bottom10Ids.has(b.title))];
 
-  const ratedLibrary = extremeBooks.map((b) => ({ 
-    title: b.title, 
-    author: b.author, 
-    rating: b.rating 
+  const ratedLibrary = extremeBooks.map((b) => ({
+    title: b.title,
+    author: b.author,
+    rating: b.rating,
+  }));
+
+  // Bottom 5 books for Wildcard aversion signal
+  const wildcardLowRated = sortedByRating.slice(0, 5).map((b) => ({
+    title: b.title,
+    author: b.author,
+    rating: b.rating,
   }));
 
   const userPrompt = isSureThing
-    ? `Reader's full rated library (up to 50 most recent, includes all ratings from 1–10):
+    ? `Reader's rated library — 10 lowest-rated books followed by up to 40 highest-rated books (all include ratings):
 ${JSON.stringify(ratedLibrary)}
 
 Do NOT recommend any book whose title (case-insensitive) appears in this list:
 ${JSON.stringify(forbiddenTitles)}
 ${opts.extraContext ? `\nAdditional context: ${opts.extraContext}` : ""}
 
-Recommend exactly one book.`
-    : `Reader's top-rated books (8+/10):
+Recommend 3 to 5 books, sorted by confidence (best match first).`
+    : `Reader's top-rated books (8+/10) — emotional fingerprint source:
 ${JSON.stringify(topRated)}
+
+Reader's lowest-rated books — aversions to avoid:
+${JSON.stringify(wildcardLowRated)}
 
 Do NOT recommend any book whose title (case-insensitive) appears in this list:
 ${JSON.stringify(forbiddenTitles)}
 ${opts.extraContext ? `\nAdditional context: ${opts.extraContext}` : ""}
 
-Recommend exactly one book.`;
+Recommend 3 to 5 books, sorted by confidence (best match first).`;
 
   return callWithRetry(systemPrompt, userPrompt, isSureThing ? 0.3 : 0.85, forbiddenTitles);
 }
@@ -201,6 +221,11 @@ export async function generateDeepDiveNextStep(opts: {
     title: b.title,
     author: b.author,
   }));
+  const lowRated = (opts.fullLibrary || [])
+    .filter((b) => b.rating != null)
+    .sort((a, b) => (a.rating || 0) - (b.rating || 0))
+    .slice(0, 5)
+    .map((b) => ({ title: b.title, author: b.author, rating: b.rating }));
 
   // Count only binary answers — the seed (index 0, role "user") is the initial prompt, not an answer
   const binaryAnswerCount = Math.max(
@@ -261,7 +286,7 @@ RULES
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: `Reader's taste profile (top-rated books): ${JSON.stringify(topRated)}\n\nConversation so far:\n${historyText}\n\nWhat is your next move?`,
+        content: `Reader's top-rated books (loves): ${JSON.stringify(topRated)}\nReader's lowest-rated books (aversions): ${JSON.stringify(lowRated)}\n\nConversation so far:\n${historyText}\n\nWhat is your next move?`,
       },
     ],
     model: "llama-3.3-70b-versatile",
@@ -284,10 +309,15 @@ export async function generateDeepDiveRecommendation(opts: {
   conversationHistory: { role: "assistant" | "user"; content: string }[];
 }): Promise<AIRecommendation> {
   const forbiddenTitles = buildForbiddenTitles(opts.fullLibrary, opts.rejectedTitles ?? []).slice(0, 300);
-  const topRated = (opts.topRatedBooks || []).slice(0, 30).map((b) => ({
+  const topRated = (opts.topRatedBooks || []).slice(0, 20).map((b) => ({
     title: b.title,
     author: b.author,
   }));
+  const lowRated = (opts.fullLibrary || [])
+    .filter((b) => b.rating != null)
+    .sort((a, b) => (a.rating || 0) - (b.rating || 0))
+    .slice(0, 5)
+    .map((b) => ({ title: b.title, author: b.author, rating: b.rating }));
 
   const moodTranscript = opts.conversationHistory
     .map((m) => `${m.role === "assistant" ? "Q" : "A"}: ${m.content}`)
@@ -295,23 +325,28 @@ export async function generateDeepDiveRecommendation(opts: {
 
   const systemPrompt = `You are a literary sommelier completing a "Deep Dive" book prescription.
 
-You have conducted a mood interview with the reader. You have two sources of signal: their long-term taste profile (top-rated books) and their answers to a diagnostic mood questionnaire.
+You have conducted a mood interview with the reader. You have three sources of signal: their highest-rated books (loves), their lowest-rated books (aversions), and their answers to a diagnostic mood questionnaire.
 
-Your task: prescribe the single most precisely calibrated book for this exact moment in their reading life. The recommendation must feel inevitable — as if the entire conversation was always leading here. It should honor both who they are as a reader and who they are right now.
+Your task: prescribe the single most precisely calibrated book for this exact moment in their reading life. The recommendation must feel inevitable — as if the entire conversation was always leading here. It should honor both who they are as a reader and who they are right now, while strictly avoiding patterns from their lowest-rated books.
 
 Output ONLY a raw, valid JSON object following this EXACT structure, ensuring all strings are properly closed with quotes:
 {
-  "title": "Exact Book Title",
-  "author": "Full Author Name",
-  "blurb": "Exactly 2 sentences fulfilling the prompt requirements."
+  "recommendations": [
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."},
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."},
+    {"title": "Exact Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences fulfilling the prompt requirements."}
+  ]
 }
 
 Do not add markdown formatting or conversational text.
 
 Only recommend real, published books.`;
 
-  const userPrompt = `Reader's top-rated books:
+  const userPrompt = `Reader's top-rated books (loves):
 ${JSON.stringify(topRated)}
+
+Reader's lowest-rated books (aversions to avoid):
+${JSON.stringify(lowRated)}
 
 Mood interview transcript:
 ${moodTranscript}
@@ -319,7 +354,7 @@ ${moodTranscript}
 Do NOT recommend any book whose title (case-insensitive) appears in this list:
 ${JSON.stringify(forbiddenTitles)}
 
-Prescribe exactly one book.`;
+Prescribe 3 to 5 books, sorted by confidence (best match first).`;
 
   return callWithRetry(systemPrompt, userPrompt, 0.5, forbiddenTitles);
 }
