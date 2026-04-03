@@ -69,7 +69,7 @@ export default function BookDetailModal({
 
       {/* Card — bottom-sheet on mobile, centered card on desktop */}
       <div
-        className={`relative z-10 w-full sm:max-w-sm bg-card
+        className={`relative z-10 w-full sm:max-w-md bg-card
                     rounded-t-3xl sm:rounded-2xl
                     shadow-[0_-8px_40px_rgba(0,0,0,0.12),0_32px_80px_rgba(0,0,0,0.18)]
                     max-h-[88vh] overflow-y-auto

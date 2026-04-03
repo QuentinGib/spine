@@ -120,8 +120,14 @@ Method:
 2. Synthesize a precise, bounded taste profile that defines both what they deeply crave and what they actively reject.
 3. Identify the single book that most naturally and inevitably fits inside these boundaries. This is not just a safe genre-match, but a meticulously chosen book that maximizes their loves while strictly avoiding their known dislikes.
 
-Output ONLY a raw, valid JSON object starting with { and ending with }. Do NOT wrap the response in markdown code blocks (```json). Do NOT add any conversational text.
-{"title": "Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences. First: articulate precisely why this book fits their specific taste while explicitly avoiding what they dislike. Second: a line that creates genuine, irresistible anticipation."}
+Output ONLY a raw, valid JSON object following this EXACT structure, ensuring all strings are properly closed with quotes:
+{
+  "title": "Exact Book Title",
+  "author": "Full Author Name",
+  "blurb": "Exactly 2 sentences fulfilling the prompt requirements."
+}
+
+Do not add markdown formatting or conversational text.
 
 Only recommend real, published books. The blurb must feel tailored, not generic.`
     : `You are a curator of unexpected literary experiences — a specialist in emotional translation across genres.
@@ -135,8 +141,14 @@ Method:
 
 The surprise should feel like a revelation: "I would never have picked this, but it gave me exactly what I didn't know I was looking for."
 
-Output ONLY a raw, valid JSON object starting with { and ending with }. Do NOT wrap the response in markdown code blocks (```json). Do NOT add any conversational text.
-{"title": "Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences. First: name the emotional core you identified and the genre pivot explicitly. Second: make the unexpected choice feel irresistible."}
+Output ONLY a raw, valid JSON object following this EXACT structure, ensuring all strings are properly closed with quotes:
+{
+  "title": "Exact Book Title",
+  "author": "Full Author Name",
+  "blurb": "Exactly 2 sentences fulfilling the prompt requirements."
+}
+
+Do not add markdown formatting or conversational text.
 
 Only recommend real, published books. The genre shift must be genuine and significant — not a minor variation.`;
 
@@ -227,7 +239,7 @@ RULES
 - After ${binaryAnswerCount >= 4 ? "reaching the limit" : "5 binary answers"}, you MUST output {"action": "recommend"}.
 - Never probe a dimension already explored in this conversation.
 - Keep option labels concise: 3–7 words each.
-- Output ONLY a raw, valid JSON object starting with { and ending with }. Do NOT wrap the response in markdown code blocks (```json). Do NOT add any conversational text.
+- Output ONLY a raw, valid JSON object starting with { and ending with }. Do NOT wrap the response in markdown code blocks (\`\`\`json). Do NOT add any conversational text.
   {"action": "ask", "question": "...", "options": ["Option A", "Option B"]}
   or {"action": "recommend"}`;
 
@@ -287,8 +299,14 @@ You have conducted a mood interview with the reader. You have two sources of sig
 
 Your task: prescribe the single most precisely calibrated book for this exact moment in their reading life. The recommendation must feel inevitable — as if the entire conversation was always leading here. It should honor both who they are as a reader and who they are right now.
 
-Output ONLY a raw, valid JSON object starting with { and ending with }. Do NOT wrap the response in markdown code blocks (```json). Do NOT add any conversational text.
-{"title": "Book Title", "author": "Full Author Name", "blurb": "Exactly 2 sentences. Tie the recommendation explicitly to what the reader revealed in their mood answers — be specific, not generic. The second sentence should create anticipation that feels personally addressed to them."}
+Output ONLY a raw, valid JSON object following this EXACT structure, ensuring all strings are properly closed with quotes:
+{
+  "title": "Exact Book Title",
+  "author": "Full Author Name",
+  "blurb": "Exactly 2 sentences fulfilling the prompt requirements."
+}
+
+Do not add markdown formatting or conversational text.
 
 Only recommend real, published books.`;
 
