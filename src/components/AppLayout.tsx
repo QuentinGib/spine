@@ -78,6 +78,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
+      {/* ── Footer ────────────────────────────────────────────────────────────── */}
+      <footer className="hidden md:block text-center pb-6 pt-2">
+        <a
+          href="mailto:spinereco@gmail.com"
+          className="text-xs text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors duration-150"
+        >
+          spinereco@gmail.com
+        </a>
+      </footer>
+
       {/* ── Bottom navigation — mobile only ───────────────────────────────────── */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-50
