@@ -280,11 +280,17 @@ export default function RecommendationPage({ type }: Props) {
   // ─── Library data helper ────────────────────────────────────────────────────
 
   const fetchLibraryData = async () => {
-    const [{ data: topRated }, { data: fullLibrary }, { data: rejected }] = await Promise.all([
+    const [
+      { data: topRated, error: e1 },
+      { data: fullLibrary, error: e2 },
+      { data: rejected, error: e3 },
+    ] = await Promise.all([
       supabase.from("library").select("title, author, rating").eq("user_id", user!.id).gte("rating", 8),
       supabase.from("library").select("title, author, rating").eq("user_id", user!.id),
       supabase.from("rejected_recommendations").select("rejected_title").eq("user_id", user!.id),
     ]);
+    const firstError = e1 ?? e2 ?? e3;
+    if (firstError) throw new Error(firstError.message || "Session expired. Please sign in again.");
     return {
       topRated: topRated || [],
       fullLibrary: fullLibrary || [],
@@ -334,16 +340,28 @@ export default function RecommendationPage({ type }: Props) {
     if (!user || !recommendation) return;
     setGenerating(true);
 
-    await supabase.from("rejected_recommendations").insert({
+    const { error: rejectError } = await supabase.from("rejected_recommendations").insert({
       user_id: user.id,
       rejected_title: recommendation.recommended_book_title,
     });
 
-    await supabase
+    if (rejectError) {
+      toast({ title: "Session expired", description: "Please sign out and sign in again.", variant: "destructive" });
+      setGenerating(false);
+      return;
+    }
+
+    const { error: deleteError } = await supabase
       .from("active_recommendations")
       .delete()
       .eq("user_id", user.id)
       .eq("type", type);
+
+    if (deleteError) {
+      toast({ title: "Error", description: deleteError.message, variant: "destructive" });
+      setGenerating(false);
+      return;
+    }
 
     setRecommendation(null);
 
