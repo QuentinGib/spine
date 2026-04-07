@@ -1,73 +1,39 @@
-# Welcome to your Lovable project
+# Spine
 
-## Project info
+Spine is a mobile application designed to redefine how readers discover their next book. Moving beyond outdated interfaces and generic bestseller lists, Spine focuses on the "vibe" and the emotional soul of a book to provide truly personalized recommendations.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## The Concept
 
-## How can I edit this code?
+The project was born out of a frustration with traditional book discovery tools that feel stuck in the early 2000s. Spine moves beyond surface-level genres to help users find books based on specific moods, atmospheres, and niche tropes—acting more like a personal librarian than a static database.
 
-There are several ways of editing your application.
+## The 3 Recommendation Engines
 
-**Use Lovable**
+Spine doesn't rely on a single algorithm. Instead, it uses a tri-engine approach to cover different psychological states of a reader:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### 1. The "Sure Thing" (Precision Matching)
+This is the analytical core of the app. It processes the user’s entire library to identify recurring patterns in themes, writing styles, and pacing.
+* **Goal:** Minimize "reading slumps" by finding the book you are statistically most likely to enjoy.
+* **Logic:** Builds a personalized preference profile based on historical likes and dislikes.
 
-Changes made via Lovable will be committed automatically to this repo.
+### 2. The "Wildcard" (Cross-Genre Discovery)
+This engine focuses on the **emotional core** rather than genre labels. It identifies *why* you love a book (e.g., "a sense of isolation" or "complex moral ambiguity") and finds those same traits in a completely different category.
+* **Goal:** Break the "genre bubble" and spark unexpected discoveries.
+* **Logic:** Maps the "soul" of your favorites and recommends books from different genres that deliver the same feeling.
 
-**Use your preferred IDE**
+### 3. The "Deep Dive" (Contextual Mood)
+Designed for the "I don't know what I want" moments. This is an interactive, prompt-based tool that uses a quick 3-question "vibe check" to prescribe a book for the exact moment.
+* **Goal:** Instant gratification based on your current state of mind.
+* **Logic:** Starts with a user prompt and narrows down the selection through specific atmospheric filters.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Global Functioning
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+The system operates as a hybrid recommendation layer:
 
-Follow these steps:
+* **Enrichment:** Metadata is processed to extract "vibes," tropes, and emotional keywords beyond simple categories.
+* **Profiling:** User data is transformed into a multi-dimensional preference map.
+* **Routing:** Depending on the chosen engine, the system weights different vectors (e.g., "Sure Thing" weights similarity high, while "Wildcard" weights genre-distance high).
+* **Feedback Loop:** Every interaction refines the global model, ensuring the recommendations improve over time.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+*Developed with a focus on modern UI and human-centric discovery.*
